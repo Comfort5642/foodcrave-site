@@ -1,0 +1,27 @@
+.hero-gradient {
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+}
+
+.food-card {
+    transition: all 0.3s ease;
+}
+
+.food-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Animation for notifications */
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.notification {
+    animation: slideIn 0.3s forwards, fadeOut 0.3s 2.7s forwards;
+}

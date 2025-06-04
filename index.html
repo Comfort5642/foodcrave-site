@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoodCrave Kenya - Order Delicious Food Online</title>
     <meta name="description" content="Order burgers, pizza, fries, milkshakes and treats online in Kenya. Customize your meal with fresh toppings and get it delivered fast.">
+    <link rel="stylesheet" href="styles/main.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -19,18 +20,6 @@
             }
         }
     </script>
-    <style>
-        .hero-gradient {
-            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
-        }
-        .food-card {
-            transition: all 0.3s ease;
-        }
-        .food-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -96,7 +85,7 @@
     </main>
 
     <!-- Cart Sidebar -->
-    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform translate-x-full transition-transform duration-300 z-50 hidden">
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-xl transform translate-x-full transition-transform duration-300 z-50 hidden">
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-between p-6 border-b">
                 <h3 class="text-xl font-bold">Your Cart</h3>
@@ -130,412 +119,104 @@
                         <span id="total" class="text-primary">KSh 0</span>
                     </div>
                 </div>
-                <button onclick="checkout()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors">
+                <button onclick="showCustomerDetails()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors">
                     Proceed to Checkout
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Cart Overlay -->
-    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleCart()"></div>
-
-    <script>
-        // Menu data with Kenyan pricing
-        const menuData = {
-            burgers: [
-                {
-                    id: 1,
-                    name: "Classic Beef Burger",
-                    description: "Juicy beef patty with fresh lettuce, tomato, and special sauce",
-                    basePrice: 650,
-                    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 2,
-                    name: "Chicken Deluxe",
-                    description: "Grilled chicken breast with avocado, bacon, and ranch dressing",
-                    basePrice: 750,
-                    image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 11,
-                    name: "Double Cheese Burger",
-                    description: "Two beef patties with double cheese, pickles, and onions",
-                    basePrice: 850,
-                    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                }
-            ],
-            pizza: [
-                {
-                    id: 3,
-                    name: "Pepperoni Classic",
-                    description: "Traditional pepperoni with mozzarella cheese and tomato sauce",
-                    basePrice: 950,
-                    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 12,
-                    name: "Margherita",
-                    description: "Fresh mozzarella, tomatoes, and basil on a crispy crust",
-                    basePrice: 850,
-                    image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 13,
-                    name: "Meat Lovers",
-                    description: "Pepperoni, sausage, bacon, and ham with extra cheese",
-                    basePrice: 1150,
-                    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                }
-            ],
-            fries: [
-                {
-                    id: 4,
-                    name: "Classic Fries",
-                    description: "Golden crispy fries with sea salt",
-                    basePrice: 250,
-                    image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 5,
-                    name: "Loaded Cheese Fries",
-                    description: "Fries topped with melted cheese, bacon bits, and green onions",
-                    basePrice: 450,
-                    image: "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 14,
-                    name: "Sweet Potato Fries",
-                    description: "Crispy sweet potato fries with honey mustard dip",
-                    basePrice: 350,
-                    image: "https://images.unsplash.com/photo-1639024471283-03518883512d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                }
-            ],
-            milkshakes: [
-                {
-                    id: 6,
-                    name: "Chocolate Bliss",
-                    description: "Rich chocolate ice cream blended with milk and topped with whipped cream",
-                    basePrice: 350,
-                    image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 7,
-                    name: "Strawberry Dream",
-                    description: "Fresh strawberry ice cream with real strawberry pieces",
-                    basePrice: 350,
-                    image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 15,
-                    name: "Vanilla Classic",
-                    description: "Creamy vanilla ice cream milkshake with a cherry on top",
-                    basePrice: 300,
-                    image: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 16,
-                    name: "Oreo Crunch",
-                    description: "Vanilla ice cream blended with crushed Oreo cookies",
-                    basePrice: 400,
-                    image: "https://images.unsplash.com/photo-1577805947697-89e18249d767?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                }
-            ],
-            treats: [
-                {
-                    id: 8,
-                    name: "Chocolate Chip Cookies",
-                    description: "Freshly baked cookies with premium chocolate chips (6 pack)",
-                    basePrice: 450,
-                    image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 9,
-                    name: "Apple Pie Slice",
-                    description: "Homemade apple pie with cinnamon and flaky crust",
-                    basePrice: 300,
-                    image: "https://images.unsplash.com/photo-1621743478914-cc8a86d7e7b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 17,
-                    name: "Fudge Brownies",
-                    description: "Rich, fudgy brownies with chocolate chips (4 pack)",
-                    basePrice: 400,
-                    image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                },
-                {
-                    id: 18,
-                    name: "Ice Cream Sundae",
-                    description: "Three scoops of ice cream with chocolate sauce, nuts, and cherry",
-                    basePrice: 500,
-                    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-                    customizable: false
-                }
-            ]
-        };
-
-        // Cart functionality
-        let cart = JSON.parse(localStorage.getItem('foodcraveCart')) || [];
-        let currentCategory = 'burgers';
-
-        // Initialize the website
-        document.addEventListener('DOMContentLoaded', function() {
-            showCategory('burgers');
-            updateCartDisplay();
-        });
-
-        // Show category
-        function showCategory(category) {
-            currentCategory = category;
-            
-            // Update active tab
-            document.querySelectorAll('.category-tab').forEach(tab => {
-                if (tab.dataset.category === category) {
-                    tab.className = 'category-tab flex items-center space-x-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-200 ease-in-out bg-primary text-white';
-                } else {
-                    tab.className = 'category-tab flex items-center space-x-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-200 ease-in-out text-gray-600 hover:bg-gray-100';
-                }
-            });
-            
-            // Display menu items
-            const container = document.getElementById('menu-container');
-            const items = menuData[category] || [];
-            
-            if (items.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12">
-                        <p class="text-gray-500 text-lg">No items available in this category</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
-            const categoryIcon = {
-                burgers: '🍔',
-                pizza: '🍕',
-                fries: '🍟',
-                milkshakes: '🥤',
-                treats: '🍪'
-            }[category];
-            
-            container.innerHTML = `
-                <section class="mb-12">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <span class="text-2xl">${categoryIcon}</span>
-                        ${categoryName}
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${items.map(item => createMenuItemCard(item)).join('')}
-                    </div>
-                </section>
-            `;
-        }
-
-        // Create menu item card
-        function createMenuItemCard(item) {
-            return `
-                <div class="food-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="aspect-[4/3] overflow-hidden">
-                        <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="p-6">
-                        <h4 class="text-xl font-semibold text-gray-800 mb-2">${item.name}</h4>
-                        <p class="text-gray-600 mb-4">${item.description}</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-2xl font-bold text-primary">KSh ${item.basePrice}</span>
-                            <button onclick="addToCart(${item.id})" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
+    <!-- Customer Details Modal -->
+    <div id="customer-details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Customer Details</h3>
+                    <button onclick="hideCustomerDetails()" class="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
-            `;
-        }
-
-        // Find item by ID
-        function findItemById(id) {
-            for (const category in menuData) {
-                const item = menuData[category].find(item => item.id === id);
-                if (item) return item;
-            }
-            return null;
-        }
-
-        // Add to cart
-        function addToCart(itemId) {
-            const item = findItemById(itemId);
-            if (!item) return;
-            
-            const cartItem = {
-                id: Date.now(),
-                itemId: itemId,
-                name: item.name,
-                basePrice: item.basePrice,
-                image: item.image,
-                quantity: 1,
-                totalPrice: item.basePrice
-            };
-            
-            cart.push(cartItem);
-            saveCart();
-            updateCartDisplay();
-            showNotification(`${item.name} added to cart!`);
-        }
-
-        function toggleCart() {
-            const sidebar = document.getElementById('cart-sidebar');
-            const overlay = document.getElementById('cart-overlay');
-            
-            if (sidebar.classList.contains('hidden')) {
-                sidebar.classList.remove('hidden');
-                overlay.classList.remove('hidden');
-                setTimeout(() => {
-                    sidebar.classList.remove('translate-x-full');
-                }, 10);
-            } else {
-                sidebar.classList.add('translate-x-full');
-                setTimeout(() => {
-                    sidebar.classList.add('hidden');
-                    overlay.classList.add('hidden');
-                }, 300);
-            }
-        }
-
-        function updateCartDisplay() {
-            const cartCount = document.getElementById('cart-count');
-            const cartItems = document.getElementById('cart-items');
-            const cartSummary = document.getElementById('cart-summary');
-            
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-            
-            if (totalItems > 0) {
-                cartCount.textContent = totalItems;
-                cartCount.classList.remove('hidden');
-            } else {
-                cartCount.classList.add('hidden');
-            }
-            
-            if (cart.length === 0) {
-                cartItems.innerHTML = `
-                    <div class="text-center py-12">
-                        <p class="text-gray-500 text-lg mb-4">Your cart is empty</p>
-                        <p class="text-gray-400">Add some delicious items to get started!</p>
+                <form id="customer-details-form" class="space-y-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="name" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 p-2 border">
                     </div>
-                `;
-                cartSummary.classList.add('hidden');
-                return;
-            }
-            
-            cartItems.innerHTML = cart.map(item => `
-                <div class="flex items-start space-x-4 p-4 border rounded-lg mb-4">
-                    <div class="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 p-2 border">
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-gray-800">${item.name}</h4>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="font-semibold text-primary">KSh ${item.totalPrice}</span>
-                            <div class="flex items-center space-x-2">
-                                <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" 
-                                        class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded text-sm">-</button>
-                                <span class="w-8 text-center text-sm">${item.quantity}</span>
-                                <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" 
-                                        class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded text-sm">+</button>
-                                <button onclick="removeFromCart(${item.id})" 
-                                        class="text-red-500 hover:text-red-700 w-6 h-6 text-sm">🗑️</button>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email (Optional)</label>
+                        <input type="email" id="email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 p-2 border">
+                    </div>
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-gray-700">Delivery Address</label>
+                        <textarea id="address" name="address" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 p-2 border"></textarea>
+                    </div>
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700">Delivery Notes (Optional)</label>
+                        <textarea id="notes" name="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 p-2 border"></textarea>
+                    </div>
+                    
+                    <div class="pt-4">
+                        <h4 class="text-lg font-medium mb-3">Payment Method</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input id="mpesa" name="payment" type="radio" value="mpesa" checked class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                <label for="mpesa" class="ml-3 block text-sm font-medium text-gray-700">
+                                    M-Pesa
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="cod" name="payment" type="radio" value="cod" class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                <label for="cod" class="ml-3 block text-sm font-medium text-gray-700">
+                                    Cash on Delivery
+                                </label>
                             </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
-            
-            updateCartSummary();
-            cartSummary.classList.remove('hidden');
-        }
+                    
+                    <div class="pt-4">
+                        <button type="button" onclick="processPayment()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors">
+                            Complete Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-        function updateCartSummary() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.totalPrice * item.quantity), 0);
-            const deliveryFee = 200;
-            const tax = subtotal * 0.16;
-            const total = subtotal + deliveryFee + tax;
-            
-            document.getElementById('subtotal').textContent = `KSh ${subtotal}`;
-            document.getElementById('tax').textContent = `KSh ${Math.round(tax)}`;
-            document.getElementById('total').textContent = `KSh ${Math.round(total)}`;
-        }
+    <!-- Payment Processing Modal -->
+    <div id="payment-processing-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 text-center">
+            <div class="mb-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                <h3 class="text-xl font-bold mb-2">Processing Your Payment</h3>
+                <p class="text-gray-600" id="payment-message">Please wait while we process your order...</p>
+            </div>
+        </div>
+    </div>
 
-        function updateQuantity(itemId, newQuantity) {
-            if (newQuantity < 1) return;
-            
-            const itemIndex = cart.findIndex(item => item.id === itemId);
-            if (itemIndex !== -1) {
-                cart[itemIndex].quantity = newQuantity;
-                saveCart();
-                updateCartDisplay();
-            }
-        }
+    <!-- Order Confirmation Modal -->
+    <div id="order-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 text-center">
+            <div class="mb-4">
+                <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <h3 class="text-xl font-bold mb-2 mt-4">Order Confirmed!</h3>
+                <p class="text-gray-600 mb-4">Thank you for your order. Your food will be prepared and delivered soon.</p>
+                <p class="text-sm text-gray-500" id="order-details"></p>
+            </div>
+            <button onclick="closeOrderConfirmation()" class="mt-4 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                Back to Menu
+            </button>
+        </div>
+    </div>
 
-        function removeFromCart(itemId) {
-            cart = cart.filter(item => item.id !== itemId);
-            saveCart();
-            updateCartDisplay();
-            showNotification('Item removed from cart');
-        }
+    <!-- Cart Overlay -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleCart()"></div>
 
-        function saveCart() {
-            localStorage.setItem('foodcraveCart', JSON.stringify(cart));
-        }
-
-        function checkout() {
-            if (cart.length === 0) return;
-            
-            const subtotal = cart.reduce((sum, item) => sum + (item.totalPrice * item.quantity), 0);
-            const deliveryFee = 200;
-            const tax = subtotal * 0.16;
-            const total = subtotal + deliveryFee + tax;
-            
-            // Clear cart
-            cart = [];
-            saveCart();
-            updateCartDisplay();
-            toggleCart();
-            
-            showNotification(`Order placed successfully! Total: KSh ${Math.round(total)}`);
-        }
-
-        function showNotification(message) {
-            const notification = document.createElement('div');
-            notification.className = 'fixed top-20 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-    </script>
+    <script src="scripts/menu-data.js"></script>
+    <script src="scripts/cart.js"></script>
+    <script src="scripts/main.js"></script>
 </body>
 </html>
