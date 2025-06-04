@@ -91,7 +91,7 @@ function updateCartDisplay() {
             <div class="flex-1 min-w-0">
                 <h4 class="font-semibold text-gray-800">${item.name}</h4>
                 <div class="flex justify-between items-center mt-2">
-                    <span class="font-semibold text-primary">KSh ${item.totalPrice}</span>
+                    <span class="font-semibold text-primary">KSh ${item.totalPrice.toLocaleString()}</span>
                     <div class="flex items-center space-x-2">
                         <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" 
                                 class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded text-sm">-</button>
@@ -113,7 +113,8 @@ function updateCartDisplay() {
 function updateCartSummary() {
     const subtotal = cart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
     const deliveryFee = 200;
-    const total = subtotal + deliveryFee;
+    const tax = subtotal * 0.16;
+    const total = subtotal + deliveryFee + tax;
     
     document.getElementById('subtotal').textContent = `KSh ${subtotal.toLocaleString()}`;
     document.getElementById('tax').textContent = `KSh ${Math.round(tax).toLocaleString()}`;
@@ -152,25 +153,26 @@ function hideCustomerDetails() {
     document.getElementById('customer-details-modal').classList.add('hidden');
 }
 
-// Send WhatsApp message using API
-async function sendWhatsAppMessage(phone, message) {
+async function sendWhatsAppMessage(phoneNumber, message) {
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappApiUrl = `https://wa.nux.my.id/api/sendWA?to=${phoneNumber}&msg=${encodedMessage}&secret=af681499818a7e12eff116ebbe01d7f4`;
+    
     try {
-        // Format phone number (remove + and any spaces)
-        const formattedPhone = phone.replace(/[+\s]/g, '');
-        const encodedMsg = encodeURIComponent(message);
-        const apiUrl = `https://wa.nux.my.id/api/sendWA?to=${formattedPhone}&msg=${encodedMsg}&secret=af681499818a7e12eff116ebbe01d7f4`;
-        
-        const response = await fetch(apiUrl);
-        const result = await response.json();
-        console.log('WhatsApp API response:', result);
-        return result.success;
+        const response = await fetch(whatsappApiUrl);
+        if (!response.ok) {
+            console.error('Failed to send WhatsApp notification');
+            return false;
+        }
+        const data = await response.json();
+        console.log('WhatsApp notification sent:', data);
+        return true;
     } catch (error) {
-        console.error('Error sending WhatsApp:', error);
+        console.error('Error sending WhatsApp notification:', error);
         return false;
     }
 }
 
-async function processPayment() {
+function processPayment() {
     const form = document.getElementById('customer-details-form');
     const formData = new FormData(form);
     const paymentMethod = formData.get('payment');
@@ -187,76 +189,70 @@ async function processPayment() {
     
     // Prepare order details
     const subtotal = cart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
-    const deliveryFee = 200;
-    const tax = subtotal * 0.16;
-    const total = subtotal + deliveryFee + tax;
+    const deliveryFee = 150;
+    const total = subtotal + deliveryFee;
     
-    // Format order items for message
-    const orderItems = cart.map(item => 
-        `${item.name} (${item.quantity} × KSh ${item.basePrice})`
-    ).join('\n');
+    const customerName = formData.get('name');
+    const customerPhone = formData.get('phone').replace(/^0/, '+254'); // Convert to international format
+    const customerAddress = formData.get('address');
+    const customerNotes = formData.get('notes') || 'No additional notes';
+    const orderNumber = 'FC-' + Date.now().toString().slice(-6);
     
-    // Current date/time
-    const now = new Date();
-    const orderDate = now.toLocaleString();
+    // Create merchant message
+    let orderItems = '';
+    cart.forEach(item => {
+        orderItems += `- ${item.name} (${item.quantity} x KSh ${item.basePrice.toLocaleString()})\n`;
+    });
     
-    // Customer message
-    const customerMessage = `📋 *FoodCrave Order Confirmation*\n\n` +
-        `Hello ${formData.get('name')},\n\n` +
-        `Your order (#${now.getTime().toString().slice(-6)}) has been received!\n\n` +
-        `*Order Summary:*\n${orderItems}\n\n` +
-        `Subtotal: KSh ${subtotal.toLocaleString()}\n` +
-        `Tax: KSh ${Math.round(tax).toLocaleString()}\n` +
-        `Delivery: KSh ${deliveryFee.toLocaleString()}\n` +
-        `*Total: KSh ${Math.round(total).toLocaleString()}*\n\n` +
-        `Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}\n` +
-        `Delivery Address: ${formData.get('address')}\n\n` +
-        `Estimated Delivery Time: ${new Date(now.getTime() + 45*60000).toLocaleTimeString()}\n\n` +
-        `Thank you for choosing FoodCrave! 🍔`;
+    const merchantMessage = `📦 *New Order #${orderNumber}*\n\n` +
+                          `👤 *Customer*: ${customerName}\n` +
+                          `📱 *Phone*: ${customerPhone}\n` +
+                          `💳 *Payment*: ${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}\n\n` +
+                          `🍔 *Order Items*:\n${orderItems}\n` +
+                          `💰 *Subtotal*: KSh ${subtotal.toLocaleString()}\n` +
+                          `🚚 *Delivery Fee*: KSh ${deliveryFee.toLocaleString()}\n` +
+                          `💵 *Total*: KSh ${Math.round(total).toLocaleString()}\n\n` +
+                          `🏠 *Delivery Address*:\n${customerAddress}\n\n` +
+                          `📝 *Notes*: ${customerNotes}`;
     
-    // Restaurant message (sent to your number)
-    const restaurantMessage = `🍽️ *New FoodCrave Order* (#${now.getTime().toString().slice(-6)})\n\n` +
-        `*Customer:* ${formData.get('name')}\n` +
-        `*Phone:* ${formData.get('phone')}\n\n` +
-        `*Order Items:*\n${orderItems}\n\n` +
-        `*Total:* KSh ${Math.round(total).toLocaleString()}\n` +
-        `*Payment:* ${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}\n` +
-        `*Address:* ${formData.get('address')}\n\n` +
-        `Order Time: ${orderDate}`;
+    // Create customer message
+    const customerMessage = `🍽️ *FoodCrave Kenya Order Confirmation #${orderNumber}*\n\n` +
+                           `Dear ${customerName},\n\n` +
+                           `Thank you for your order! Here are your order details:\n\n` +
+                           `📅 *Order Date*: ${new Date().toLocaleString()}\n` +
+                           `🍴 *Items Ordered*:\n${orderItems}\n` +
+                           `💵 *Total Amount*: KSh ${Math.round(total).toLocaleString()}\n` +
+                           `🏠 *Delivery Address*: ${customerAddress}\n\n` +
+                           `Your food is being prepared and will be delivered soon.\n\n` +
+                           `For any inquiries, please call +254 700 000000.\n\n` +
+                           `Thank you for choosing FoodCrave Kenya!`;
     
-    try {
-        // Send messages (customer and restaurant)
-        const customerSent = await sendWhatsAppMessage(formData.get('phone'), customerMessage);
-        const restaurantSent = await sendWhatsAppMessage('254728671638', restaurantMessage);
-        
-        if (!customerSent || !restaurantSent) {
-            console.warn('WhatsApp messages not delivered to both parties');
-        }
-    } catch (error) {
-        console.error('Error sending WhatsApp confirmation:', error);
-    }
-    
-    // Complete order processing
-    setTimeout(() => {
-        document.getElementById('payment-processing-modal').classList.add('hidden');
-        
+    // Send messages
+    Promise.all([
+        sendWhatsAppMessage('254671638', merchantMessage), // Your merchant number
+        sendWhatsAppMessage(customerPhone, customerMessage) // Customer's number
+    ]).finally(() => {
+        // Show order confirmation regardless of WhatsApp success
         const orderDetails = `
-            <p class="mb-2">Order Total: KSh ${Math.round(total).toLocaleString()}</p>
-            <p class="mb-2">Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}</p>
-            <p>Delivery to: ${formData.get('address')}</p>
-            <div class="mt-4 p-3 bg-green-50 rounded-lg">
-                <p class="text-green-700">A confirmation has been sent to your WhatsApp.</p>
+            <div class="mb-4">
+                <p class="text-lg font-semibold">Order #${orderNumber}</p>
+                <p class="text-gray-600">${new Date().toLocaleString()}</p>
             </div>
+            <p class="mb-2">Total: <span class="font-bold">KSh ${Math.round(total).toLocaleString()}</span></p>
+            <p class="mb-2">Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}</p>
+            <p class="mb-4">Delivery to: ${customerAddress}</p>
+            <p class="text-green-600">A confirmation has been sent to your WhatsApp.</p>
         `;
         
         document.getElementById('order-details').innerHTML = orderDetails;
+        document.getElementById('payment-processing-modal').classList.add('hidden');
         document.getElementById('order-confirmation-modal').classList.remove('hidden');
         
         // Clear cart
         cart = [];
         saveCart();
         updateCartDisplay();
-    }, 3000);
+    });
 }
 
 function closeOrderConfirmation() {
