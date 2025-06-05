@@ -5,7 +5,7 @@ let currentCategory = 'burgers';
 // WhatsApp Business API Configuration
 const WhatsAppConfig = {
   apiUrl: 'https://api.waboxapp.com/v1/send/chat',
-  token: '04d8675091a846a1ebf61dcec8ed686a6841fa8c400c5', // Your WABOXAPP token
+  token: '757dd55e6145da0d7756b5aa088012776842028ac368e', // Your WABOXAPP token
   uid: '254728671638' // Your WhatsApp number
 };
 
