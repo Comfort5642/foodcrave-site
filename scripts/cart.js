@@ -2,6 +2,13 @@
 let cart = JSON.parse(localStorage.getItem('foodcraveCart')) || [];
 let currentCategory = 'burgers';
 
+// WhatsApp Business API Configuration
+const WhatsAppConfig = {
+  apiUrl: 'https://api.waboxapp.com/v1/send/chat',
+  token: '04d8675091a846a1ebf61dcec8ed686a6841fa8c400c5', // Your WABOXAPP token
+  uid: '254728671638' // Your WhatsApp number
+};
+
 // Find item by ID
 function findItemById(id) {
     for (const category in menuData) {
@@ -159,24 +166,57 @@ function hideCustomerDetails() {
     document.getElementById('customer-details-modal').classList.add('hidden');
 }
 
-// Send WhatsApp message using API
+// Enhanced WhatsApp Business API function
 async function sendWhatsAppMessage(phone, message) {
     try {
-        const formattedPhone = phone.replace(/[+\s]/g, '');
-        const finalPhone = formattedPhone.startsWith('0') ? '254' + formattedPhone.substring(1) : formattedPhone;
-        const encodedMsg = encodeURIComponent(message);
-        const apiUrl = `https://wa.nux.my.id/api/sendWA?to=${finalPhone}&msg=${encodedMsg}&secret=af681499818a7e12eff116ebbe01d7f4`;
+        // Format phone number
+        let formattedPhone = phone.replace(/[+\s]/g, '');
+        if (formattedPhone.startsWith('0')) {
+            formattedPhone = '254' + formattedPhone.substring(1);
+        } else if (formattedPhone.startsWith('7')) {
+            formattedPhone = '254' + formattedPhone;
+        }
         
-        const response = await fetch(apiUrl);
+        if (!/^254[17]\d{8}$/.test(formattedPhone)) {
+            console.error('Invalid Kenyan phone number:', phone);
+            return false;
+        }
+
+        const payload = {
+            token: WhatsAppConfig.token,
+            uid: WhatsAppConfig.uid,
+            to: formattedPhone,
+            text: message,
+            custom_uid: `msg-${Date.now()}`
+        };
+
+        console.log('Sending WhatsApp to:', formattedPhone);
+        console.log('Using API Token:', WhatsAppConfig.token);
+        
+        const response = await fetch(WhatsAppConfig.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
         const result = await response.json();
-        return result.success;
+        console.log('API response:', result);
+        
+        if (result.success) {
+            return true;
+        } else {
+            console.error('API error:', result.message);
+            window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+            return false;
+        }
     } catch (error) {
-        console.error('Error sending WhatsApp:', error);
+        console.error('WhatsApp error:', error);
+        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
         return false;
     }
 }
 
-// Process payment
+// Process payment with Till Number 3628254
 async function processPayment() {
     const form = document.getElementById('customer-details-form');
     const formData = new FormData(form);
@@ -191,7 +231,7 @@ async function processPayment() {
     
     // Validate phone number
     if (!/^(\+?254|0)[17]\d{8}$/.test(customerPhone)) {
-        showNotification('Please enter a valid Kenyan phone number (e.g., 0728671638 or +254728671638)');
+        showNotification('Please enter a valid Kenyan phone number');
         return;
     }
     
@@ -210,11 +250,11 @@ async function processPayment() {
         document.getElementById('payment-processing-modal').innerHTML = `
             <div class="text-center p-6">
                 <h3 class="text-lg font-semibold text-gray-800">Complete M-Pesa Payment</h3>
-                <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <p class="font-medium text-gray-800">Send Money to Till Number:</p>
-                    <p class="text-2xl font-bold text-green-600 my-2">3628254</p>
-                    <p class="text-sm text-gray-600">Amount: <span class="font-semibold">KSh ${total}</span></p>
-                    <p class="text-sm text-gray-600">Order #: ${orderNumber}</p>
+                    <p class="text-3xl font-bold text-green-600 my-2">3628254</p>
+                    <p class="text-lg">Amount: <span class="font-bold">KSh ${total}</span></p>
+                    <p class="text-sm text-gray-600 mt-2">Order #${orderNumber}</p>
                 </div>
                 <div class="mt-4 text-left bg-gray-50 p-3 rounded-lg">
                     <p class="text-sm text-gray-600">1. Go to M-Pesa menu</p>
@@ -270,18 +310,16 @@ async function processPayment() {
     }
 }
 
-// Verify manual payment (for Till Number)
+// Verify manual payment
 async function verifyManualPayment(orderNumber, amount) {
     document.getElementById('payment-processing-modal').innerHTML = `
         <div class="text-center p-6">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
             <h3 class="text-lg font-semibold text-gray-800">Verifying Payment</h3>
-            <p class="text-gray-600 mt-2">Please wait while we confirm your payment...</p>
+            <p class="text-gray-600 mt-2">Please wait...</p>
         </div>
     `;
     
-    // In a real system, you would check your payment records here
-    // For demo, we'll simulate a verification delay
     setTimeout(() => {
         const order = JSON.parse(sessionStorage.getItem('pendingOrder'));
         if (order) {
@@ -290,20 +328,19 @@ async function verifyManualPayment(orderNumber, amount) {
                 mpesaReceiptNumber: 'MP' + Math.floor(Math.random() * 1000000)
             });
         } else {
-            showNotification('Error verifying payment. Please contact support');
+            showNotification('Error verifying payment');
             document.getElementById('payment-processing-modal').classList.add('hidden');
         }
     }, 3000);
 }
 
-// Complete order process
+// Complete order with enhanced UI
 async function completeOrder(orderData) {
-    // Prepare confirmation messages
+    // Prepare messages
     const orderItems = orderData.items.map(item => 
         `${item.name} (${item.quantity} × KSh ${item.price})`
     ).join('\n');
     
-    // Customer message
     const customerMessage = `📋 *FoodCrave Order Confirmation*\n\n` +
         `Hello ${orderData.customerName},\n\n` +
         `Your order (#${orderData.orderNumber}) is confirmed!\n\n` +
@@ -312,9 +349,8 @@ async function completeOrder(orderData) {
         `*Payment:* ${orderData.paymentMethod}` +
         (orderData.mpesaReceiptNumber ? ` (Receipt: ${orderData.mpesaReceiptNumber})` : '') + `\n` +
         `*Delivery to:* ${orderData.address}\n\n` +
-        `Thank you for your order!`;
+        `Thank you!`;
     
-    // Restaurant message (to your number)
     const restaurantMessage = `🍽️ *New Order* #${orderData.orderNumber}\n\n` +
         `*Customer:* ${orderData.customerName}\n` +
         `*Phone:* ${orderData.customerPhone}\n\n` +
@@ -325,28 +361,65 @@ async function completeOrder(orderData) {
         `*Address:* ${orderData.address}`;
     
     // Send notifications
-    await sendWhatsAppMessage(orderData.customerPhone, customerMessage);
-    await sendWhatsAppMessage('254728671638', restaurantMessage);
+    let notificationsSent = true;
+    try {
+        console.log('Attempting to send WhatsApp notifications...');
+        const customerSent = await sendWhatsAppMessage(orderData.customerPhone, customerMessage);
+        const restaurantSent = await sendWhatsAppMessage('254728671638', restaurantMessage);
+        notificationsSent = customerSent && restaurantSent;
+        console.log('Notification status:', { customerSent, restaurantSent });
+    } catch (error) {
+        console.error('Notification error:', error);
+        notificationsSent = false;
+    }
     
-    // Show confirmation
+    // Show confirmation with enhanced UI
     document.getElementById('payment-processing-modal').classList.add('hidden');
-    document.getElementById('order-details').innerHTML = `
-        <div class="text-center p-6">
-            <svg class="w-12 h-12 text-green-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    
+    const confirmationHTML = `
+        <div class="text-center p-6" style="background: linear-gradient(135deg, #f5f7fa 0%, #e4f0f9 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            <h3 class="text-lg font-semibold text-gray-800">Order Confirmed!</h3>
-            <p class="text-gray-600 mt-2">${orderData.paymentMethod.includes('M-Pesa') ? 'Payment received' : 'Your food is on the way'}</p>
-            <div class="mt-4 p-3 bg-green-50 rounded-lg">
-                <p class="text-green-700">Order #${orderData.orderNumber}</p>
-                <p class="text-green-700">KSh ${orderData.total.toLocaleString()}</p>
-                <p class="text-sm text-green-600 mt-1">Confirmation sent to your WhatsApp</p>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Order Confirmed!</h3>
+            <p class="text-lg text-gray-600 mb-6">${orderData.paymentMethod.includes('M-Pesa') ? 'Payment received!' : 'Your food is on the way!'}</p>
+            
+            <div class="bg-white p-4 rounded-lg shadow-inner mb-6 text-left">
+                <div class="flex justify-between border-b pb-2 mb-2">
+                    <span class="font-medium">Order #:</span>
+                    <span class="font-semibold">${orderData.orderNumber}</span>
+                </div>
+                <div class="flex justify-between border-b pb-2 mb-2">
+                    <span class="font-medium">Total:</span>
+                    <span class="font-bold text-green-600">KSh ${orderData.total.toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">Payment:</span>
+                    <span class="font-semibold">${orderData.paymentMethod}</span>
+                </div>
             </div>
-            <button onclick="closeOrderConfirmation()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg">
-                Done
+            
+            ${!notificationsSent ? `
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 text-left">
+                <p>Please save this order number for reference.</p>
+            </div>
+            ` : `
+            <p class="text-blue-600 mb-6">
+                <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                Confirmation sent to your WhatsApp
+            </p>
+            `}
+            
+            <button onclick="closeOrderConfirmation()" 
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+                Continue Shopping
             </button>
         </div>
     `;
+    
+    document.getElementById('order-details').innerHTML = confirmationHTML;
     document.getElementById('order-confirmation-modal').classList.remove('hidden');
     
     // Clear cart
@@ -381,5 +454,5 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Initialize cart on page load
+// Initialize cart
 document.addEventListener('DOMContentLoaded', updateCartDisplay);
